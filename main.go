@@ -86,7 +86,7 @@ func main() {
 			},
 			{
 				Name:    "pending",
-				Aliases: []string{"d"},
+				Aliases: []string{"pd"},
 				Usage:   "Pending tasks on the list",
 				Action: func(c *cli.Context) error {
 					tasks, err := getPending()
@@ -103,7 +103,7 @@ func main() {
 			},
 			{
 				Name:    "finish",
-				Aliases: []string{"d"},
+				Aliases: []string{"fn"},
 				Usage:   "Finish tasks on the list",
 				Action: func(c *cli.Context) error {
 					tasks, err := getFinished()

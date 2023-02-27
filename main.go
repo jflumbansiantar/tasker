@@ -120,10 +120,22 @@ func main() {
 			},
 			{
 				Name:  "rm",
-				Usage: "Deletes a task on the list",
+				Usage: "Hard deletes a task on the list",
 				Action: func(c *cli.Context) error {
 					text := c.Args().First()
 					err := deleteTask(text)
+					if err != nil {
+						return err
+					}
+					return nil
+				},
+			},
+			{
+				Name:  "del",
+				Usage: "Soft deletes a task on the list",
+				Action: func(c *cli.Context) error {
+					text := c.Args().First()
+					err := softDeleteTask(text)
 					if err != nil {
 						return err
 					}
@@ -142,8 +154,10 @@ type Task struct {
 	ID        primitive.ObjectID `bson:"_id"`
 	CreatedAt time.Time          `bson:"created_at"`
 	UpdatedAt time.Time          `bson:"updated_at"`
+	DeletedAt time.Time          `bson:"deleted_at"`
 	Text      string             `bson:"text"`
 	Completed bool               `bson:"completed"`
+	Deleted   bool               `bson:"deleted"`
 }
 
 func createTask(task *Task) error {
@@ -186,6 +200,8 @@ func printTasks(tasks []*Task) {
 	for i, v := range tasks {
 		if v.Completed {
 			color.Green.Printf("%d: %s\n", i+1, v.Text)
+		} else if v.Deleted {
+			color.Red.Printf("%d: %s\n", i+1, v.Text)
 		} else {
 			color.Yellow.Printf("%d: %s\n", i+1, v.Text)
 		}
@@ -206,6 +222,7 @@ func completeTask(text string) error {
 func getPending() ([]*Task, error) {
 	filter := bson.D{
 		primitive.E{Key: "completed", Value: false},
+		primitive.E{Key: "deleted", Value: false},
 	}
 
 	return filterTasks(filter)
@@ -229,4 +246,16 @@ func deleteTask(text string) error {
 		return errors.New("no tasks were deleted")
 	}
 	return nil
+}
+
+func softDeleteTask(text string) error {
+	filter := bson.D{primitive.E{Key: "text", Value: text}}
+
+	update := bson.D{primitive.E{Key: "$set", Value: bson.D{
+		primitive.E{Key: "deleted", Value: true},
+		primitive.E{Key: "deleted_at", Value: time.Now()},
+	}}}
+
+	t := &Task{}
+	return collection.FindOneAndUpdate(ctx, filter, update).Decode(t)
 }
